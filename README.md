@@ -2,9 +2,6 @@
 
 Kenpath assignment: a patient logs up to four blood glucose readings a day and views daily, month-to-date, and previous-month reports.
 
-**Demo video:** [Watch here](ADD_LINK)  
-**Live app:** ADD_LINK (optional)
-
 ## Screenshots
 
 | Login | Readings |
