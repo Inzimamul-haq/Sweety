@@ -184,7 +184,7 @@ Protected routes expect `Authorization: Bearer <token>`.
 
 Allowed slots: `Morning (fasting)`, `After breakfast`, `After lunch`, `After dinner`.
 
-## Bonus Features (`Bonus` Branch)
+## Bonus Features (`Bonus` Branch) please naviagte to view the screenshots and others 
 
 | Doctor Role & Clinician Dashboard |
 |---|
