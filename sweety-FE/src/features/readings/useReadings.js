@@ -11,23 +11,39 @@ export function useReadings(date) {
   const [readings, setReadings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchReadings(date);
-      setReadings(data);
-    } catch (err) {
-      setError(getErrorPayload(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [date]);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let ignore = false;
+
+    async function load() {
+      try {
+        const data = await fetchReadings(date);
+        if (!ignore) {
+          setReadings(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(getErrorPayload(err));
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [date, reloadKey]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  }, []);
 
   async function add(payload) {
     const reading = await createReading(payload);

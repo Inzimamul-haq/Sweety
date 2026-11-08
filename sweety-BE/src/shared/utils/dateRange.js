@@ -58,6 +58,18 @@ export function dailyRange(date) {
   return { from: date, to: date };
 }
 
+export function weekRange(date) {
+  const parsed = parseISODate(date);
+  const dt = new Date(Date.UTC(parsed.y, parsed.mo - 1, parsed.d));
+  dt.setUTCDate(dt.getUTCDate() - 6);
+  const from = formatISO({
+    y: dt.getUTCFullYear(),
+    mo: dt.getUTCMonth() + 1,
+    d: dt.getUTCDate(),
+  });
+  return { from, to: date };
+}
+
 export function monthToDateRange(date) {
   const parsed = parseISODate(date);
   return { from: formatISO({ y: parsed.y, mo: parsed.mo, d: 1 }), to: date };
@@ -100,6 +112,7 @@ export function formatRangeLabel(from, to) {
 
 export function rangeFor(kind, date) {
   if (kind === 'daily') return dailyRange(date);
+  if (kind === 'weekly') return weekRange(date);
   if (kind === 'month-to-date') return monthToDateRange(date);
   if (kind === 'monthly') return previousMonthRange(date);
   throw new Error(`Unknown range kind: ${kind}`);

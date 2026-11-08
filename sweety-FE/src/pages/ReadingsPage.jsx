@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, CalendarDays, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, BarChart3, CalendarDays, CheckCircle2, Droplets, Plus, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getErrorPayload } from '../api/client.js';
 import { SLOT_META } from '../constants/slots.js';
 import { useToast } from '../components/ui/ToastContext.jsx';
@@ -50,106 +51,189 @@ export function ReadingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3.5 lg:h-[calc(100vh-100px)] lg:overflow-hidden">
+      {/* 1. Sleek Compact Header */}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between shrink-0">
         <div>
-          <p className="text-sm font-medium text-rose-800">Today’s log</p>
-          <h1 className="font-display text-3xl text-stone-900 sm:text-4xl">Readings</h1>
-          <p className="mt-1 text-stone-500">{formatPretty(date)}</p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl font-bold text-stone-900 sm:text-3xl">
+              Readings
+            </h1>
+            <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
+              Journal
+            </span>
+          </div>
+          <p className="text-xs font-medium text-stone-500">
+            Today’s log · <span className="text-stone-700">{formatPretty(date)}</span>
+          </p>
         </div>
-        <label className="flex w-full items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 ring-1 ring-stone-200 sm:w-auto">
-          <CalendarDays className="h-4 w-4 text-stone-500" />
-          <input
-            type="date"
-            max={todayISO()}
-            value={date}
-            onChange={(event) => {
-              setDate(event.target.value);
-              setEditing(null);
-            }}
-            className="w-full bg-transparent text-sm outline-none"
-          />
-        </label>
+
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 rounded-xl bg-white/90 px-3 py-1.5 shadow-2xs ring-1 ring-stone-200">
+            <CalendarDays className="h-4 w-4 text-stone-500" />
+            <input
+              type="date"
+              max={todayISO()}
+              value={date}
+              onChange={(event) => {
+                setDate(event.target.value);
+                setEditing(null);
+              }}
+              className="bg-transparent text-xs font-medium outline-none cursor-pointer text-stone-700"
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        <motion.section
-          layout
-          className="rounded-3xl bg-white/80 p-5 shadow-sm ring-1 ring-stone-200/80 lg:col-span-7"
+      {/* Mobile-only View Reports Button */}
+      <div className="sm:hidden shrink-0">
+        <Link
+          to="/reports"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-rose-800 shadow-2xs ring-1 ring-stone-200 hover:bg-stone-50 transition"
         >
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="h-4 w-4 text-rose-800" />
-            <h2 className="font-display text-2xl">
-              {editing ? 'Edit reading' : 'Add a reading'}
-            </h2>
-          </div>
-          {atLimit ? (
-            <p className="rounded-2xl bg-stone-50 px-4 py-6 text-sm text-stone-600">
-              You can add only 4 readings per day. Edit or delete one to make space.
-            </p>
-          ) : (
-            <ReadingForm
-              key={editing ? `edit-${editing.id}` : `create-${date}-${readings.length}`}
-              date={date}
-              usedSlots={usedSlots}
-              initial={editing}
-              submitLabel={editing ? 'Save changes' : 'Save reading'}
-              onSubmit={editing ? handleUpdate : handleCreate}
-              onCancel={editing ? () => setEditing(null) : undefined}
-            />
-          )}
-        </motion.section>
+          <BarChart3 className="h-4 w-4" />
+          <span>View Reports</span>
+        </Link>
+      </div>
 
-        <motion.section
-          layout
-          className="rounded-3xl bg-rose-800 p-5 text-rose-50 shadow-sm lg:col-span-5"
-        >
-          <p className="text-sm text-rose-100">Slots filled</p>
-          <p className="mt-2 font-display text-5xl">{readings.length}/4</p>
-          <p className="mt-4 max-w-xs text-sm text-rose-100">
-            One value per slot. Used slots stay disabled until you edit or delete them.
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            {SLOT_META.map((meta) => {
-              const filled = usedSlots.includes(meta.slot);
-              const Icon = meta.icon;
-              return (
-                <div
-                  key={meta.slot}
-                  className={`flex items-center gap-2 rounded-2xl px-3 py-3 text-sm ${
-                    filled ? 'bg-white/15' : 'bg-black/10 text-rose-200'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {meta.short}
-                </div>
-              );
-            })}
-          </div>
-        </motion.section>
-
-        <section className="rounded-3xl bg-white/80 p-5 shadow-sm ring-1 ring-stone-200/80 lg:col-span-12">
-          <h2 className="mb-4 font-display text-2xl">This day’s readings</h2>
-          {loading ? (
-            <p className="text-sm text-stone-500">Loading readings…</p>
-          ) : error ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
-                <span>{error.message}</span>
+      {/* 2. Bento Grid Layout (Fits neatly in 1 single frame on laptop/desktop) */}
+      <div className="grid gap-3.5 lg:grid-cols-12 flex-1 min-h-0">
+        {/* Left Column: Form & Slots progress stacked */}
+        <div className="flex flex-col gap-3.5 lg:col-span-5">
+          {/* Add / Edit Reading Card */}
+          <motion.section
+            layout
+            className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-stone-200/80 flex flex-col justify-between"
+          >
+            <div className="mb-3 flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <div className="flex items-center gap-1.5">
+                <Plus className="h-4 w-4 text-rose-800" />
+                <h2 className="font-display text-lg font-bold text-stone-900">
+                  {editing ? 'Edit reading' : 'Add a reading'}
+                </h2>
               </div>
-              <button
-                type="button"
-                onClick={refresh}
-                className="flex items-center gap-1.5 self-start rounded-xl bg-white px-3 py-1.5 font-semibold text-rose-800 shadow-sm ring-1 ring-rose-200 hover:bg-rose-50 transition"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span>Retry</span>
-              </button>
+              {editing ? (
+                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                  Editing {editing.slot}
+                </span>
+              ) : null}
             </div>
-          ) : (
-            <ReadingList readings={readings} onEdit={setEditing} onDelete={handleDelete} />
-          )}
+
+            {atLimit ? (
+              <div className="rounded-xl bg-stone-50/80 p-4 text-center">
+                <p className="text-xs font-medium text-stone-600">
+                  All 4 daily slots are filled.
+                </p>
+                <p className="mt-1 text-[11px] text-stone-400">
+                  Edit or delete any reading on the right to change values.
+                </p>
+              </div>
+            ) : (
+              <ReadingForm
+                key={editing ? `edit-${editing.id}` : `create-${date}-${readings.length}`}
+                date={date}
+                usedSlots={usedSlots}
+                initial={editing}
+                submitLabel={editing ? 'Save changes' : 'Save reading'}
+                onSubmit={editing ? handleUpdate : handleCreate}
+                onCancel={editing ? () => setEditing(null) : undefined}
+              />
+            )}
+          </motion.section>
+
+          {/* Slots Filled Bento Summary */}
+          <motion.section
+            layout
+            className="rounded-2xl bg-rose-800 p-4 text-rose-50 shadow-sm flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-rose-200 uppercase tracking-wider">
+                  Slots filled
+                </p>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="font-display text-3xl font-bold text-white">
+                    {readings.length}
+                  </span>
+                  <span className="text-sm font-semibold text-rose-200">/ 4 today</span>
+                </div>
+              </div>
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white">
+                <Droplets className="h-5 w-5" />
+              </span>
+            </div>
+
+            <p className="mt-2 text-xs text-rose-100/90 leading-relaxed">
+              One value per slot. Used slots stay locked until you edit or delete them.
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
+              {SLOT_META.map((meta) => {
+                const filled = usedSlots.includes(meta.slot);
+                const Icon = meta.icon;
+                return (
+                  <div
+                    key={meta.slot}
+                    className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition ${
+                      filled
+                        ? 'bg-white/20 text-white'
+                        : 'bg-black/15 text-rose-200/60'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{meta.short}</span>
+                    {filled ? (
+                      <CheckCircle2 className="ml-auto h-3 w-3 text-rose-200" />
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.section>
+        </div>
+
+        {/* Right Column: This Day's Readings (Full Bento Frame) */}
+        <section className="flex flex-col rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-stone-200/80 lg:col-span-7">
+          <div className="mb-3 flex items-center justify-between border-b border-stone-100 pb-2.5 shrink-0">
+            <div>
+              <h2 className="font-display text-lg font-bold text-stone-900">
+                This day’s readings
+              </h2>
+              <p className="text-xs text-stone-500 font-medium">
+                {readings.length === 0
+                  ? 'No entries logged yet'
+                  : `${readings.length} of 4 slots logged`}
+              </p>
+            </div>
+            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
+              {readings.length}/4
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex h-48 items-center justify-center text-xs text-stone-400">
+                Loading readings…
+              </div>
+            ) : error ? (
+              <div className="flex flex-col gap-2 rounded-xl border border-rose-200 bg-rose-50/70 p-3.5 text-xs text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+                  <span>{error.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={refresh}
+                  className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-rose-800 shadow-2xs ring-1 ring-rose-200 hover:bg-rose-50 transition cursor-pointer"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            ) : (
+              <ReadingList readings={readings} onEdit={setEditing} onDelete={handleDelete} />
+            )}
+          </div>
         </section>
       </div>
     </div>

@@ -1,7 +1,4 @@
 import { pool } from '../../config/db.js';
-import { SLOTS } from '../../shared/constants/slots.js';
-
-const SLOT_ORDER = Object.fromEntries(SLOTS.map((slot, index) => [slot, index]));
 
 function mapReading(row) {
   const dateStr = typeof row.reading_date === 'string'
@@ -46,32 +43,32 @@ export async function getStats({ userId, from, to }) {
   };
 }
 
-export async function listInRange({ userId, from, to }) {
+export async function listInRange({ userId, from, to, page, limit }) {
+  const params = [userId, from, to];
+  let paginationSql = '';
+
+  if (limit) {
+    const offset = page && page > 1 ? (page - 1) * limit : 0;
+    params.push(limit, offset);
+    paginationSql = `LIMIT $4 OFFSET $5`;
+  }
+
   const { rows } = await pool.query(
     `SELECT id, reading_date, slot, value
      FROM readings
      WHERE user_id = $1
        AND reading_date BETWEEN $2 AND $3
-     ORDER BY reading_date ASC`,
-    [userId, from, to],
+     ORDER BY reading_date ASC,
+       CASE slot
+         WHEN 'Morning (fasting)' THEN 1
+         WHEN 'After breakfast' THEN 2
+         WHEN 'After lunch' THEN 3
+         WHEN 'After dinner' THEN 4
+         ELSE 5
+       END ASC
+     ${paginationSql}`,
+    params,
   );
 
-  return [...rows]
-    .sort((a, b) => {
-      const dateA = typeof a.reading_date === 'string'
-        ? a.reading_date
-        : a.reading_date instanceof Date
-          ? a.reading_date.toISOString().slice(0, 10)
-          : String(a.reading_date);
-      const dateB = typeof b.reading_date === 'string'
-        ? b.reading_date
-        : b.reading_date instanceof Date
-          ? b.reading_date.toISOString().slice(0, 10)
-          : String(b.reading_date);
-
-      const byDate = dateA.localeCompare(dateB);
-      if (byDate !== 0) return byDate;
-      return SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot];
-    })
-    .map(mapReading);
+  return rows.map(mapReading);
 }

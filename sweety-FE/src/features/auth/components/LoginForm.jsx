@@ -6,6 +6,7 @@ import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
 import { Input } from '../../../components/ui/Input.jsx';
 import { useToast } from '../../../components/ui/ToastContext.jsx';
 import { useAuth } from '../AuthContext.jsx';
+import { loginSchema, validateAuth } from '../auth.validation.js';
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -18,10 +19,18 @@ export function LoginForm() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    // Frontend validation with Zod before making request
+    const validation = validateAuth(loginSchema, form);
+    if (!validation.success) {
+      setError(validation.error);
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
-      const user = await login(form);
+      const user = await login(validation.data);
       toast.success(user?.name ? `Welcome back, ${user.name}!` : 'Logged in successfully!');
       navigate(location.state?.from?.pathname || '/readings', { replace: true });
     } catch (err) {
@@ -34,7 +43,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <Input
         label="Email"
         name="email"
@@ -42,7 +51,10 @@ export function LoginForm() {
         autoComplete="email"
         value={form.email}
         error={error?.field === 'email'}
-        onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+        onChange={(event) => {
+          setForm((current) => ({ ...current, email: event.target.value }));
+          if (error?.field === 'email') setError(null);
+        }}
       />
       <Input
         label="Password"
@@ -51,7 +63,10 @@ export function LoginForm() {
         autoComplete="current-password"
         value={form.password}
         error={error?.field === 'password'}
-        onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+        onChange={(event) => {
+          setForm((current) => ({ ...current, password: event.target.value }));
+          if (error?.field === 'password') setError(null);
+        }}
       />
       <ErrorMessage>{error?.message}</ErrorMessage>
       <Button type="submit" className="w-full" loading={loading}>

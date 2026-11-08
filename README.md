@@ -109,6 +109,7 @@ npm run dev
 | PUT | `/readings/:id` | JWT | Update reading by ID |
 | DELETE | `/readings/:id` | JWT | Delete reading by ID |
 | GET | `/reports/daily?date=YYYY-MM-DD` | JWT | Daily summary report and readings |
+| GET | `/reports/weekly?date=YYYY-MM-DD` | JWT | 7-day weekly progression statistics |
 | GET | `/reports/month-to-date?date=YYYY-MM-DD` | JWT | Month-to-date statistics |
 | GET | `/reports/monthly?date=YYYY-MM-DD` | JWT | Previous-month statistics relative to selected date |
 

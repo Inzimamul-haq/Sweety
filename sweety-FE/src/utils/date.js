@@ -9,6 +9,13 @@ export function todayISO() {
   }).format(now);
 }
 
+export function parseISODate(iso) {
+  if (!iso || typeof iso !== 'string') return null;
+  const parts = iso.split('-').map(Number);
+  if (parts.length !== 3) return null;
+  return { y: parts[0], mo: parts[1], d: parts[2] };
+}
+
 export function formatPretty(iso) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-').map(Number);

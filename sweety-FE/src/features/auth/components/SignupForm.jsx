@@ -6,6 +6,7 @@ import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
 import { Input } from '../../../components/ui/Input.jsx';
 import { useToast } from '../../../components/ui/ToastContext.jsx';
 import { useAuth } from '../AuthContext.jsx';
+import { signupSchema, validateAuth } from '../auth.validation.js';
 
 export function SignupForm() {
   const { register } = useAuth();
@@ -16,15 +17,26 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
 
   function update(field) {
-    return (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
+    return (event) => {
+      setForm((current) => ({ ...current, [field]: event.target.value }));
+      if (error?.field === field) setError(null);
+    };
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    // Frontend validation with Zod before making request
+    const validation = validateAuth(signupSchema, form);
+    if (!validation.success) {
+      setError(validation.error);
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
-      const user = await register(form);
+      const user = await register(validation.data);
       toast.success(user?.name ? `Account created! Welcome, ${user.name}.` : 'Account created successfully!');
       navigate('/readings', { replace: true });
     } catch (err) {
@@ -37,8 +49,14 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input label="Name" name="name" value={form.name} error={error?.field === 'name'} onChange={update('name')} />
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <Input
+        label="Name"
+        name="name"
+        value={form.name}
+        error={error?.field === 'name'}
+        onChange={update('name')}
+      />
       <Input
         label="Email"
         name="email"
