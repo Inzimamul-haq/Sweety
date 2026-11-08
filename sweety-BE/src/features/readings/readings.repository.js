@@ -1,13 +1,19 @@
-import { supabase, throwIfError } from '../../config/db.js';
+import { pool } from '../../config/db.js';
 import { SLOTS } from '../../shared/constants/slots.js';
 
 const SLOT_ORDER = Object.fromEntries(SLOTS.map((slot, index) => [slot, index]));
 
 function mapReading(row) {
+  const dateStr = typeof row.reading_date === 'string'
+    ? row.reading_date
+    : row.reading_date instanceof Date
+      ? row.reading_date.toISOString().slice(0, 10)
+      : String(row.reading_date);
+
   return {
     id: row.id,
     userId: row.user_id,
-    date: row.reading_date,
+    date: dateStr,
     slot: row.slot,
     value: row.value,
     createdAt: row.created_at,
@@ -19,104 +25,93 @@ function sortBySlot(rows) {
 }
 
 export async function insertReading({ userId, date, slot, value }) {
-  const { data, error } = await supabase
-    .from('readings')
-    .insert({
-      user_id: userId,
-      reading_date: date,
-      slot,
-      value,
-    })
-    .select('id, user_id, reading_date, slot, value, created_at')
-    .single();
+  const { rows } = await pool.query(
+    `INSERT INTO readings (user_id, reading_date, slot, value)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, user_id, reading_date, slot, value, created_at`,
+    [userId, date, slot, value],
+  );
 
-  throwIfError(error);
-  return mapReading(data);
+  return mapReading(rows[0]);
 }
 
 export async function updateReading({ id, userId, date, slot, value }) {
-  const { data, error } = await supabase
-    .from('readings')
-    .update({
-      reading_date: date,
-      slot,
-      value,
-    })
-    .eq('id', id)
-    .eq('user_id', userId)
-    .select('id, user_id, reading_date, slot, value, created_at')
-    .maybeSingle();
+  const { rows } = await pool.query(
+    `UPDATE readings
+     SET reading_date = $1, slot = $2, value = $3
+     WHERE id = $4 AND user_id = $5
+     RETURNING id, user_id, reading_date, slot, value, created_at`,
+    [date, slot, value, id, userId],
+  );
 
-  throwIfError(error);
-  return data ? mapReading(data) : null;
+  return rows[0] ? mapReading(rows[0]) : null;
 }
 
 export async function deleteReading({ id, userId }) {
-  const { data, error } = await supabase
-    .from('readings')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', userId)
-    .select('id')
-    .maybeSingle();
+  const { rows } = await pool.query(
+    `DELETE FROM readings
+     WHERE id = $1 AND user_id = $2
+     RETURNING id`,
+    [id, userId],
+  );
 
-  throwIfError(error);
-  return Boolean(data);
+  return rows.length > 0;
 }
 
 export async function findByIdForUser(id, userId) {
-  const { data, error } = await supabase
-    .from('readings')
-    .select('id, user_id, reading_date, slot, value, created_at')
-    .eq('id', id)
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { rows } = await pool.query(
+    `SELECT id, user_id, reading_date, slot, value, created_at
+     FROM readings
+     WHERE id = $1 AND user_id = $2`,
+    [id, userId],
+  );
 
-  throwIfError(error);
-  return data ? mapReading(data) : null;
+  return rows[0] ? mapReading(rows[0]) : null;
 }
 
 export async function listByUserAndDate(userId, date) {
-  const { data, error } = await supabase
-    .from('readings')
-    .select('id, user_id, reading_date, slot, value, created_at')
-    .eq('user_id', userId)
-    .eq('reading_date', date);
+  const { rows } = await pool.query(
+    `SELECT id, user_id, reading_date, slot, value, created_at
+     FROM readings
+     WHERE user_id = $1 AND reading_date = $2`,
+    [userId, date],
+  );
 
-  throwIfError(error);
-  return sortBySlot(data || []).map(mapReading);
+  return sortBySlot(rows).map(mapReading);
 }
 
 export async function findByUserDateSlot({ userId, date, slot, excludeId }) {
-  let request = supabase
-    .from('readings')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('reading_date', date)
-    .eq('slot', slot)
-    .limit(1);
+  let query = `
+    SELECT id
+    FROM readings
+    WHERE user_id = $1 AND reading_date = $2 AND slot = $3
+  `;
+  const params = [userId, date, slot];
 
   if (excludeId) {
-    request = request.neq('id', excludeId);
+    params.push(excludeId);
+    query += ` AND id != $${params.length}`;
   }
 
-  const { data, error } = await request.maybeSingle();
-  throwIfError(error);
-  return data || null;
+  query += ` LIMIT 1`;
+
+  const { rows } = await pool.query(query, params);
+  return rows[0] || null;
 }
 
 export async function countByUserDate({ userId, date, excludeId }) {
-  let request = supabase
-    .from('readings')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('reading_date', date);
+  let query = `
+    SELECT COUNT(*)::int AS count
+    FROM readings
+    WHERE user_id = $1 AND reading_date = $2
+  `;
+  const params = [userId, date];
 
   if (excludeId) {
-    request = request.neq('id', excludeId);
+    params.push(excludeId);
+    query += ` AND id != $${params.length}`;
   }
 
-  const { count, error } = await request;
-  throwIfError(error);
-  return count || 0;
+  const { rows } = await pool.query(query, params);
+  return rows[0] ? rows[0].count : 0;
 }

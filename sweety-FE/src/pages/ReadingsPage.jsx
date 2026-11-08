@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
-import { CalendarDays, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { AlertCircle, CalendarDays, Plus, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { getErrorPayload } from '../api/client.js';
 import { SLOT_META } from '../constants/slots.js';
+import { useToast } from '../components/ui/ToastContext.jsx';
 import { ReadingForm } from '../features/readings/components/ReadingForm.jsx';
 import { ReadingList } from '../features/readings/components/ReadingList.jsx';
 import { useReadings } from '../features/readings/useReadings.js';
@@ -9,27 +11,42 @@ import { formatPretty, todayISO } from '../utils/date.js';
 
 export function ReadingsPage() {
   const [date, setDate] = useState(todayISO());
-  const { readings, loading, error, add, edit, remove } = useReadings(date);
+  const { readings, loading, error, refresh, add, edit, remove } = useReadings(date);
   const [editing, setEditing] = useState(null);
+  const toast = useToast();
 
   const usedSlots = useMemo(() => readings.map((reading) => reading.slot), [readings]);
   const atLimit = readings.length >= 4 && !editing;
 
+  useEffect(() => {
+    if (error?.message) {
+      toast.error(error.message, 'Failed to Load Readings');
+    }
+  }, [error, toast]);
+
   async function handleCreate(payload) {
     await add({ ...payload, date });
+    toast.success('Reading logged successfully!');
   }
 
   async function handleUpdate(payload) {
     await edit(editing.id, payload);
     setEditing(null);
+    toast.success('Reading updated successfully!');
     if (payload.date !== date) setDate(payload.date);
   }
 
   async function handleDelete(reading) {
     const confirmed = window.confirm(`Delete the ${reading.slot} reading?`);
     if (!confirmed) return;
-    await remove(reading.id);
-    if (editing?.id === reading.id) setEditing(null);
+    try {
+      await remove(reading.id);
+      toast.success(`${reading.slot} reading deleted.`);
+      if (editing?.id === reading.id) setEditing(null);
+    } catch (err) {
+      const payload = getErrorPayload(err);
+      toast.error(payload.message, 'Delete Failed');
+    }
   }
 
   return (
@@ -116,7 +133,20 @@ export function ReadingsPage() {
           {loading ? (
             <p className="text-sm text-stone-500">Loading readings…</p>
           ) : error ? (
-            <p className="text-sm text-rose-700">{error.message}</p>
+            <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
+                <span>{error.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={refresh}
+                className="flex items-center gap-1.5 self-start rounded-xl bg-white px-3 py-1.5 font-semibold text-rose-800 shadow-sm ring-1 ring-rose-200 hover:bg-rose-50 transition"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Retry</span>
+              </button>
+            </div>
           ) : (
             <ReadingList readings={readings} onEdit={setEditing} onDelete={handleDelete} />
           )}

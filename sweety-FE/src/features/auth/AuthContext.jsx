@@ -31,11 +31,13 @@ export function AuthProvider({ children }) {
         const result = await loginUser(payload);
         localStorage.setItem('sweety_token', result.token);
         setUser(result.user);
+        return result.user;
       },
       async register(payload) {
         const result = await registerUser(payload);
         localStorage.setItem('sweety_token', result.token);
         setUser(result.user);
+        return result.user;
       },
       logout() {
         localStorage.removeItem('sweety_token');

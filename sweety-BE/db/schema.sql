@@ -42,6 +42,3 @@ AS $$
   WHERE user_id = p_user_id
     AND reading_date BETWEEN p_from AND p_to;
 $$;
-
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE readings ENABLE ROW LEVEL SECURITY;

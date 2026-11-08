@@ -1,34 +1,31 @@
-import { supabase, throwIfError } from '../../config/db.js';
+import { pool } from '../../config/db.js';
 
 export async function createUser({ name, email, passwordHash }) {
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ name, email, password_hash: passwordHash })
-    .select('id, name, email, created_at')
-    .single();
-
-  throwIfError(error);
-  return data;
+  const { rows } = await pool.query(
+    `INSERT INTO users (name, email, password_hash)
+     VALUES ($1, $2, $3)
+     RETURNING id, name, email, created_at`,
+    [name, email, passwordHash],
+  );
+  return rows[0];
 }
 
 export async function findByEmail(email) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, name, email, password_hash, created_at')
-    .eq('email', email)
-    .maybeSingle();
-
-  throwIfError(error);
-  return data;
+  const { rows } = await pool.query(
+    `SELECT id, name, email, password_hash, created_at
+     FROM users
+     WHERE email = $1`,
+    [email],
+  );
+  return rows[0] || null;
 }
 
 export async function findById(id) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, name, email, created_at')
-    .eq('id', id)
-    .maybeSingle();
-
-  throwIfError(error);
-  return data;
+  const { rows } = await pool.query(
+    `SELECT id, name, email, created_at
+     FROM users
+     WHERE id = $1`,
+    [id],
+  );
+  return rows[0] || null;
 }

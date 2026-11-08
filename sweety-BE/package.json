@@ -7,14 +7,15 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "db:migrate": "node db/migrate.js",
-    "seed": "node db/seed.js"
+    "setup": "node db/setup.js",
+    "db:migrate": "node db/setup.js",
+    "seed": "node db/seed.js",
+    "db:init": "npm run setup && npm run seed"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",

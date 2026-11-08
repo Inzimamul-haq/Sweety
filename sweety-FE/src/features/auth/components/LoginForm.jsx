@@ -4,10 +4,12 @@ import { getErrorPayload } from '../../../api/client.js';
 import { Button } from '../../../components/ui/Button.jsx';
 import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
 import { Input } from '../../../components/ui/Input.jsx';
+import { useToast } from '../../../components/ui/ToastContext.jsx';
 import { useAuth } from '../AuthContext.jsx';
 
 export function LoginForm() {
   const { login } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -19,10 +21,13 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(form);
+      const user = await login(form);
+      toast.success(user?.name ? `Welcome back, ${user.name}!` : 'Logged in successfully!');
       navigate(location.state?.from?.pathname || '/readings', { replace: true });
     } catch (err) {
-      setError(getErrorPayload(err));
+      const payload = getErrorPayload(err);
+      setError(payload);
+      toast.error(payload.message, 'Login Failed');
     } finally {
       setLoading(false);
     }

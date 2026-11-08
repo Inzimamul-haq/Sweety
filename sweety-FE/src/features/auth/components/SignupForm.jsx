@@ -4,10 +4,12 @@ import { getErrorPayload } from '../../../api/client.js';
 import { Button } from '../../../components/ui/Button.jsx';
 import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
 import { Input } from '../../../components/ui/Input.jsx';
+import { useToast } from '../../../components/ui/ToastContext.jsx';
 import { useAuth } from '../AuthContext.jsx';
 
 export function SignupForm() {
   const { register } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState(null);
@@ -22,10 +24,13 @@ export function SignupForm() {
     setError(null);
     setLoading(true);
     try {
-      await register(form);
+      const user = await register(form);
+      toast.success(user?.name ? `Account created! Welcome, ${user.name}.` : 'Account created successfully!');
       navigate('/readings', { replace: true });
     } catch (err) {
-      setError(getErrorPayload(err));
+      const payload = getErrorPayload(err);
+      setError(payload);
+      toast.error(payload.message, 'Registration Failed');
     } finally {
       setLoading(false);
     }

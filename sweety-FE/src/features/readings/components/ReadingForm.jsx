@@ -4,6 +4,7 @@ import { SLOT_META } from '../../../constants/slots.js';
 import { Button } from '../../../components/ui/Button.jsx';
 import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
 import { Input } from '../../../components/ui/Input.jsx';
+import { useToast } from '../../../components/ui/ToastContext.jsx';
 import { todayISO } from '../../../utils/date.js';
 
 function clientValidate({ value, date, slot }) {
@@ -35,6 +36,7 @@ export function ReadingForm({
   onSubmit,
   onCancel,
 }) {
+  const toast = useToast();
   const [form, setForm] = useState({
     date: initial?.date || date,
     slot: initial?.slot || '',
@@ -52,6 +54,7 @@ export function ReadingForm({
     const localError = clientValidate(form);
     if (localError) {
       setError(localError);
+      toast.error(localError.message, 'Validation Error');
       return;
     }
 
@@ -64,7 +67,9 @@ export function ReadingForm({
         value: Number(form.value),
       });
     } catch (err) {
-      setError(getErrorPayload(err));
+      const payload = getErrorPayload(err);
+      setError(payload);
+      toast.error(payload.message, initial ? 'Update Failed' : 'Add Reading Failed');
     } finally {
       setLoading(false);
     }

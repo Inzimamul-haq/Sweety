@@ -10,4 +10,7 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 coverage
+*.exe
 docs/screenshots/.gitkeep
+requirement.md
+stack-and-layout.md

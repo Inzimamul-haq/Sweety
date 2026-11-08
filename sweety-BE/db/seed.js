@@ -1,6 +1,28 @@
 import bcrypt from 'bcrypt';
-import { supabase, throwIfError } from '../src/config/db.js';
+import pg from 'pg';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { SLOTS } from '../src/shared/constants/slots.js';
+
+const { Pool } = pg;
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env
+dotenv.config({ path: path.resolve(here, '../.env') });
+
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('\n❌ Missing DIRECT_URL or DATABASE_URL in .env');
+  console.error('Please configure your Neon connection string in sweety-BE/.env\n');
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+});
 
 const DEMO_EMAIL = 'demo@sweety.app';
 const DEMO_PASSWORD = 'Demo12345';
@@ -41,55 +63,53 @@ function buildSampleReadings() {
 }
 
 async function seed() {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const client = await pool.connect();
+  try {
+    console.log('Seeding demo data into Neon PostgreSQL...');
+    await client.query('BEGIN');
 
-  const existing = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', DEMO_EMAIL)
-    .maybeSingle();
-  throwIfError(existing.error);
+    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  let userId = existing.data?.id;
+    // Upsert demo user safely
+    const userRes = await client.query(
+      `INSERT INTO users (name, email, password_hash)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (email)
+       DO UPDATE SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash
+       RETURNING id`,
+      ['Demo Patient', DEMO_EMAIL, passwordHash],
+    );
+    const userId = userRes.rows[0].id;
 
-  if (userId) {
-    const updated = await supabase
-      .from('users')
-      .update({ name: 'Demo Patient', password_hash: passwordHash })
-      .eq('id', userId)
-      .select('id')
-      .single();
-    throwIfError(updated.error);
-  } else {
-    const created = await supabase
-      .from('users')
-      .insert({
-        name: 'Demo Patient',
-        email: DEMO_EMAIL,
-        password_hash: passwordHash,
-      })
-      .select('id')
-      .single();
-    throwIfError(created.error);
-    userId = created.data.id;
+    // Delete existing demo readings to keep re-runs idempotent and clean
+    await client.query('DELETE FROM readings WHERE user_id = $1', [userId]);
+
+    const sampleReadings = buildSampleReadings();
+
+    // Insert sample readings safely
+    for (const reading of sampleReadings) {
+      await client.query(
+        `INSERT INTO readings (user_id, reading_date, slot, value)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id, reading_date, slot)
+         DO UPDATE SET value = EXCLUDED.value`,
+        [userId, reading.date, reading.slot, reading.value],
+      );
+    }
+
+    await client.query('COMMIT');
+
+    console.log(
+      `✅ Seeded demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD} with ${sampleReadings.length} readings.`,
+    );
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Database seed failed:', error.message);
+    process.exitCode = 1;
+  } finally {
+    client.release();
+    await pool.end();
   }
-
-  const removed = await supabase.from('readings').delete().eq('user_id', userId);
-  throwIfError(removed.error);
-
-  const readings = buildSampleReadings().map((reading) => ({
-    user_id: userId,
-    reading_date: reading.date,
-    slot: reading.slot,
-    value: reading.value,
-  }));
-
-  const inserted = await supabase.from('readings').insert(readings);
-  throwIfError(inserted.error);
-
-  process.stdout.write(
-    `Seeded demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD} with ${readings.length} readings.\n`,
-  );
 }
 
 await seed();

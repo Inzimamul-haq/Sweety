@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Activity, CalendarDays, Hash, TrendingDown, TrendingUp } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Activity, AlertCircle, CalendarDays, Hash, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { getErrorPayload } from '../api/client.js';
+import { useToast } from '../components/ui/ToastContext.jsx';
 import { DailyReport } from '../features/reports/components/DailyReport.jsx';
 import { RangeReport } from '../features/reports/components/RangeReport.jsx';
 import { StatsCard } from '../features/reports/components/StatsCard.jsx';
@@ -24,34 +25,32 @@ export function ReportsPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const toast = useToast();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const loader =
+        tab === 'daily'
+          ? fetchDailyReport
+          : tab === 'month-to-date'
+            ? fetchMonthToDateReport
+            : fetchMonthlyReport;
+      const data = await loader(date);
+      setReport(data);
+    } catch (err) {
+      const payload = getErrorPayload(err);
+      setError(payload);
+      toast.error(payload.message, 'Failed to Load Report');
+    } finally {
+      setLoading(false);
+    }
+  }, [date, tab, toast]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const loader =
-          tab === 'daily'
-            ? fetchDailyReport
-            : tab === 'month-to-date'
-              ? fetchMonthToDateReport
-              : fetchMonthlyReport;
-        const data = await loader(date);
-        if (!cancelled) setReport(data);
-      } catch (err) {
-        if (!cancelled) setError(getErrorPayload(err));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
     load();
-    return () => {
-      cancelled = true;
-    };
-  }, [date, tab]);
+  }, [load]);
 
   const stats = report?.stats || { highest: null, lowest: null, average: null, count: 0 };
 
@@ -92,7 +91,22 @@ export function ReportsPage() {
         ))}
       </div>
 
-      {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
+      {error ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
+            <span>{error.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={load}
+            className="flex items-center gap-1.5 self-start rounded-xl bg-white px-3 py-1.5 font-semibold text-rose-800 shadow-sm ring-1 ring-rose-200 hover:bg-rose-50 transition"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
