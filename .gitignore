@@ -4,7 +4,6 @@ dist-ssr
 .env
 .env.local
 *.env
-*.env*
 *.log
 .DS_Store
 .vscode/*
@@ -13,4 +12,4 @@ coverage
 *.exe
 docs/screenshots/.gitkeep
 requirement.md
-stack-and-layout.md
+stack-and-layout
