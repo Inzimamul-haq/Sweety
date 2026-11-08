@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, BarChart3, CalendarDays, CheckCircle2, Droplets, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, BarChart3, CalendarDays, CheckCircle2, Droplets, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getErrorPayload } from '../api/client.js';
 import { SLOT_META } from '../constants/slots.js';
+import { ConfirmModal } from '../components/ui/ConfirmModal.jsx';
 import { useToast } from '../components/ui/ToastContext.jsx';
 import { ReadingForm } from '../features/readings/components/ReadingForm.jsx';
 import { ReadingList } from '../features/readings/components/ReadingList.jsx';
@@ -14,6 +15,8 @@ export function ReadingsPage() {
   const [date, setDate] = useState(todayISO());
   const { readings, loading, error, refresh, add, edit, remove } = useReadings(date);
   const [editing, setEditing] = useState(null);
+  const [readingToDelete, setReadingToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const toast = useToast();
 
   const usedSlots = useMemo(() => readings.map((reading) => reading.slot), [readings]);
@@ -37,16 +40,23 @@ export function ReadingsPage() {
     if (payload.date !== date) setDate(payload.date);
   }
 
-  async function handleDelete(reading) {
-    const confirmed = window.confirm(`Delete the ${reading.slot} reading?`);
-    if (!confirmed) return;
+  function handleDeleteClick(reading) {
+    setReadingToDelete(reading);
+  }
+
+  async function handleConfirmDelete() {
+    if (!readingToDelete) return;
+    setDeleting(true);
     try {
-      await remove(reading.id);
-      toast.success(`${reading.slot} reading deleted.`);
-      if (editing?.id === reading.id) setEditing(null);
+      await remove(readingToDelete.id);
+      toast.success(`${readingToDelete.slot} reading deleted.`);
+      if (editing?.id === readingToDelete.id) setEditing(null);
+      setReadingToDelete(null);
     } catch (err) {
       const payload = getErrorPayload(err);
       toast.error(payload.message, 'Delete Failed');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -231,11 +241,27 @@ export function ReadingsPage() {
                 </button>
               </div>
             ) : (
-              <ReadingList readings={readings} onEdit={setEditing} onDelete={handleDelete} />
+              <ReadingList readings={readings} onEdit={setEditing} onDelete={handleDeleteClick} />
             )}
           </div>
         </section>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(readingToDelete)}
+        title="Delete Reading?"
+        description={
+          readingToDelete
+            ? `Are you sure you want to delete the ${readingToDelete.slot} reading (${readingToDelete.value} mg/dl)? This action cannot be undone.`
+            : ''
+        }
+        confirmText="Delete Reading"
+        confirmVariant="danger"
+        icon={Trash2}
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => !deleting && setReadingToDelete(null)}
+      />
     </div>
   );
 }

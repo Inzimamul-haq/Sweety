@@ -138,7 +138,7 @@ App: `http://localhost:5173`
 - **Email:** `demo@sweety.app`
 - **Password:** `Demo12345`
 
-The seed contains readings for all of October 2026 and 1–7 November 2026. Pick a date within that range in the report date picker to see complete data. (Local demo credentials only.)
+The seed contains over 380 readings spanning **August, September, October, and November 2026**. Pick a date within that range in the report date picker to see complete data and full trend charts. (Local demo credentials only.)
 
 ## Available Scripts
 
@@ -190,6 +190,7 @@ Allowed slots: `Morning (fasting)`, `After breakfast`, `After lunch`, `After din
 ## Notes & Architecture
 
 - **Database:** plain PostgreSQL on Neon through `pg.Pool` with SSL. No ORM and no Supabase SDK. The pooled URL serves the API and the direct URL serves schema setup and seeding.
+- **Identifiers:** User primary keys are cryptographically generated `UUID` values (`gen_random_uuid()`), referenced by `readings.user_id` (`UUID`). Reading record IDs remain sequential `SERIAL` integers for clean and compact URL parameters (`/readings/:id`).
 - **Date handling:** Postgres `DATE` values (OID 1082) are returned as `YYYY-MM-DD` strings in `src/config/db.js`, which avoids timezone drift between UTC and local time.
 - **Data isolation:** enforced in the application layer with JWT authentication (`requireAuth`) and parameterized queries scoped by `WHERE user_id = $1`.
 - **Validation order:** required fields → integer range (40–600 mg/dL) → no future dates → duplicate slot (also guarded by the `readings_user_date_slot_unique` constraint, error code `23505`) → maximum 4 readings per day.

@@ -15,7 +15,7 @@ function publicUser(user) {
 
 function signToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, name: user.name },
+    { sub: user.id, id: user.id, email: user.email, name: user.name },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn },
   );

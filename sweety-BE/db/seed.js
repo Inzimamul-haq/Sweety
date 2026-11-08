@@ -38,24 +38,42 @@ function pad(n) {
 function buildSampleReadings() {
   const rows = [];
   const year = 2026;
-  const currentMonth = 11;
-  const previousMonth = 10;
 
-  for (let day = 1; day <= daysInMonth(year, previousMonth); day += 1) {
-    const date = `${year}-${pad(previousMonth)}-${pad(day)}`;
-    const values = [98 + (day % 7), 132 + (day % 9), 141 + (day % 11), 118 + (day % 5)];
-    SLOTS.forEach((slot, index) => {
-      if (day % 6 === 0 && index === 3) return;
-      rows.push({ date, slot, value: values[index] });
-    });
+  // Multi-month sample data across August, September, and October
+  const fullMonths = [
+    { mo: 8, base: [96, 130, 138, 115] },
+    { mo: 9, base: [94, 126, 135, 112] },
+    { mo: 10, base: [98, 132, 141, 118] },
+  ];
+
+  for (const { mo, base } of fullMonths) {
+    const totalDays = daysInMonth(year, mo);
+    for (let day = 1; day <= totalDays; day += 1) {
+      const date = `${year}-${pad(mo)}-${pad(day)}`;
+      const variance = (day % 5) - 2;
+      const values = [
+        Math.max(75, base[0] + (day % 7) + variance),
+        Math.max(100, base[1] + (day % 9) + variance),
+        Math.max(110, base[2] + (day % 11) + variance),
+        Math.max(90, base[3] + (day % 6) + variance),
+      ];
+
+      SLOTS.forEach((slot, index) => {
+        // Occasionally skip a slot for realism
+        if ((day * (index + 1)) % 17 === 0) return;
+        rows.push({ date, slot, value: values[index] });
+      });
+    }
   }
 
-  for (let day = 1; day <= 7; day += 1) {
+  // Current month (November 2026), days 1 through 8
+  const currentMonth = 11;
+  for (let day = 1; day <= 8; day += 1) {
     const date = `${year}-${pad(currentMonth)}-${pad(day)}`;
-    const values = [102, 128, 146, 121];
+    const values = [100 + (day % 4), 128 + (day % 6), 142 + (day % 5), 120 + (day % 4)];
     const count = day === 3 ? 2 : 4;
     SLOTS.slice(0, count).forEach((slot, index) => {
-      rows.push({ date, slot, value: values[index] + day });
+      rows.push({ date, slot, value: values[index] });
     });
   }
 

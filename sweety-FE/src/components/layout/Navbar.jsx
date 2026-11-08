@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext.jsx';
 import { Button } from '../ui/Button.jsx';
+import { ConfirmModal } from '../ui/ConfirmModal.jsx';
 
 const links = [
   { to: '/readings', label: 'Readings', icon: Droplets },
@@ -13,8 +14,11 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  function handleLogout() {
+  function handleConfirmLogout() {
+    setShowLogoutConfirm(false);
+    setOpen(false);
     logout();
     navigate('/login');
   }
@@ -50,7 +54,7 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <p className="max-w-40 truncate text-sm text-stone-500">{user?.name}</p>
-          <Button variant="secondary" onClick={handleLogout}>
+          <Button variant="secondary" onClick={() => setShowLogoutConfirm(true)}>
             <LogOut className="h-4 w-4" />
             Log out
           </Button>
@@ -79,12 +83,23 @@ export function Navbar() {
               {link.label}
             </NavLink>
           ))}
-          <Button variant="secondary" className="w-full" onClick={handleLogout}>
+          <Button variant="secondary" className="w-full" onClick={() => setShowLogoutConfirm(true)}>
             <LogOut className="h-4 w-4" />
             Log out
           </Button>
         </div>
       ) : null}
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Log Out?"
+        description="Are you sure you want to log out of your Sweety account?"
+        confirmText="Log Out"
+        confirmVariant="primary"
+        icon={LogOut}
+        onConfirm={handleConfirmLogout}
+        onClose={() => setShowLogoutConfirm(false)}
+      />
     </header>
   );
 }
