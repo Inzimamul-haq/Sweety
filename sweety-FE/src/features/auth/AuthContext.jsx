@@ -1,8 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { deleteUserAccount, fetchMe, loginUser, registerUser } from './auth.api.js';
+import {
+  deleteUserAccount,
+  fetchMe,
+  loginUser,
+  registerDoctorUser,
+  registerUser,
+} from './auth.api.js';
 
 const AuthContext = createContext(null);
+
+export const DOCTOR_SIGNUP_TOKEN_KEY = 'sweety_doctor_signup_token';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -48,16 +56,25 @@ export function AuthProvider({ children }) {
         setUser(result.user);
         return result.user;
       },
+      async registerDoctor(payload, signupToken) {
+        const result = await registerDoctorUser(payload, signupToken);
+        sessionStorage.removeItem(DOCTOR_SIGNUP_TOKEN_KEY);
+        localStorage.setItem('sweety_token', result.token);
+        setUser(result.user);
+        return result.user;
+      },
       updateUser(nextUser) {
         setUser((prev) => ({ ...prev, ...nextUser }));
       },
       logout() {
         localStorage.removeItem('sweety_token');
+        sessionStorage.removeItem(DOCTOR_SIGNUP_TOKEN_KEY);
         setUser(null);
       },
       async deleteAccount(payload) {
         const result = await deleteUserAccount(payload);
         localStorage.removeItem('sweety_token');
+        sessionStorage.removeItem(DOCTOR_SIGNUP_TOKEN_KEY);
         setUser(null);
         return result;
       },

@@ -80,7 +80,7 @@ export async function updateReading(userId, id, payload) {
     userId,
     date: payload.date,
     slot: payload.slot,
-    excludeId: Number(id),
+    excludeId: id,
   });
 
   try {

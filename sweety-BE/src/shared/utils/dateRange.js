@@ -41,17 +41,16 @@ export function lastDayOfMonth(y, mo) {
   return new Date(Date.UTC(y, mo, 0)).getUTCDate();
 }
 
-export function todayInTimezone(timezone) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+export function utcTodayPlusOneISO() {
+  const now = new Date();
+  const plusOne = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
+  return plusOne.toISOString().slice(0, 10);
 }
 
-export function isFutureDate(iso, timezone) {
-  return iso > todayInTimezone(timezone);
+export function isFutureDate(iso) {
+  return iso > utcTodayPlusOneISO();
 }
 
 export function dailyRange(date) {

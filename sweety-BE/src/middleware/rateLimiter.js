@@ -25,6 +25,13 @@ export const authRateLimiter = createLimiter({
   message: 'Too many authentication attempts. Please try again after 10 minutes.',
 });
 
+// Doctor access code verification: 5 attempts per 1 minute per IP
+export const doctorCodeRateLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  limit: 5,
+  message: 'Too many access code attempts. Please wait a minute and try again.',
+});
+
 // Add reading: 30 requests per 2 minutes
 export const addReadingRateLimiter = createLimiter({
   windowMs: 2 * 60 * 1000,
@@ -38,4 +45,3 @@ export const profileRateLimiter = createLimiter({
   limit: 15,
   message: 'Too many profile update requests. Please try again after 10 minutes.',
 });
-

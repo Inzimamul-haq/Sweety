@@ -9,6 +9,24 @@ export async function register(req, res, next) {
   }
 }
 
+export async function verifyDoctorCode(req, res, next) {
+  try {
+    const result = authService.verifyDoctorCode(req.validated);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function registerDoctor(req, res, next) {
+  try {
+    const result = await authService.registerDoctor(req.validated);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function login(req, res, next) {
   try {
     const result = await authService.login(req.validated);

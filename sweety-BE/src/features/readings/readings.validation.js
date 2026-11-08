@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { env } from '../../config/env.js';
 import { SLOTS } from '../../shared/constants/slots.js';
 import { isFutureDate, parseISODate } from '../../shared/utils/dateRange.js';
 
@@ -10,7 +9,7 @@ const DATE_FUTURE = 'Date cannot be in the future.';
 const dateSchema = z
   .string({ error: 'Please select a date.' })
   .refine((value) => Boolean(parseISODate(value)), 'Please select a valid date.')
-  .refine((value) => !isFutureDate(value, env.timezone), DATE_FUTURE);
+  .refine((value) => !isFutureDate(value), DATE_FUTURE);
 
 const valueSchema = z.preprocess((raw) => {
   if (raw === '' || raw === null || raw === undefined) return undefined;

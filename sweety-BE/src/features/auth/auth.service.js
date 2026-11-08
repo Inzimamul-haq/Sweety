@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env.js';
 import { getCache, setCache, invalidateUserCache, invalidateReadingsCache } from '../../config/redis.js';
@@ -10,16 +11,49 @@ function publicUser(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role || 'patient',
     createdAt: user.created_at,
+    connectedDoctor: user.doctor_id
+      ? {
+          id: user.doctor_id,
+          name: user.doctor_name,
+          email: user.doctor_email,
+        }
+      : null,
   };
 }
 
 function signToken(user) {
   return jwt.sign(
-    { sub: user.id, id: user.id, email: user.email, name: user.name },
+    { sub: user.id, role: user.role || 'patient' },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn },
   );
+}
+
+function safeCompareCode(input, expected) {
+  const a = Buffer.from(String(input || ''), 'utf8');
+  const b = Buffer.from(String(expected || ''), 'utf8');
+  if (a.length !== b.length) {
+    crypto.timingSafeEqual(b, b);
+    return false;
+  }
+  return crypto.timingSafeEqual(a, b);
+}
+
+export function verifyDoctorCode({ code }) {
+  const isValid = safeCompareCode(code, env.doctorAccessCode);
+  if (!isValid) {
+    throw new AppError(403, 'Invalid access code.', 'code');
+  }
+
+  const signupToken = jwt.sign(
+    { purpose: 'doctor-signup' },
+    env.jwtSecret,
+    { expiresIn: '10m' },
+  );
+
+  return { signupToken };
 }
 
 export async function register({ name, email, password }) {
@@ -31,7 +65,38 @@ export async function register({ name, email, password }) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    const user = await authRepository.createUser({ name, email, passwordHash });
+    // Always creates a patient; never accepts role from body
+    const user = await authRepository.createUser({
+      name,
+      email,
+      passwordHash,
+      role: 'patient',
+    });
+    const token = signToken(user);
+    return { user: publicUser(user), token };
+  } catch (error) {
+    if (error?.code === '23505') {
+      throw new AppError(409, 'An account with this email already exists.', 'email');
+    }
+    throw error;
+  }
+}
+
+export async function registerDoctor({ name, email, password }) {
+  const existing = await authRepository.findByEmail(email);
+  if (existing) {
+    throw new AppError(409, 'An account with this email already exists.', 'email');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  try {
+    const user = await authRepository.createUser({
+      name,
+      email,
+      passwordHash,
+      role: 'doctor',
+    });
     const token = signToken(user);
     return { user: publicUser(user), token };
   } catch (error) {

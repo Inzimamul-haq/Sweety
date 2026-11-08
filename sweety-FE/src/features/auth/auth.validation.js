@@ -30,6 +30,13 @@ export const signupSchema = z.object({
     .min(8, 'Password must be at least 8 characters.'),
 });
 
+export const doctorAccessCodeSchema = z.object({
+  code: z
+    .string({ error: 'Please enter the access code.' })
+    .trim()
+    .min(1, 'Please enter the access code.'),
+});
+
 export const updateProfileSchema = z.object({
   name: z
     .string({ error: 'Please enter your name.' })

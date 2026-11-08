@@ -3,14 +3,18 @@ import { SLOT_META } from '../../../constants/slots.js';
 import { glucoseTone } from '../../../utils/date.js';
 import { EmptyState } from './EmptyState.jsx';
 
-export function DailyReport({ report }) {
+export function DailyReport({ report, readOnly = false }) {
   const readings = Array.isArray(report?.readings) ? report.readings : [];
 
   if (!report || report.stats?.count === 0 || readings.length === 0) {
     return (
       <EmptyState
         title="No readings on this day"
-        body="Add a few glucose values on the Readings page to see today’s highest, lowest and average."
+        body={
+          readOnly
+            ? 'This patient has not logged any glucose values for the selected date.'
+            : 'Add a few glucose values on the Readings page to see today’s highest, lowest and average.'
+        }
       />
     );
   }

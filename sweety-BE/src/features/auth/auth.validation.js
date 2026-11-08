@@ -14,6 +14,13 @@ export const registerSchema = z.object({
     .min(8, 'Password must be at least 8 characters.'),
 });
 
+export const verifyDoctorCodeSchema = z.object({
+  code: z
+    .string({ error: 'Please enter the access code.' })
+    .trim()
+    .min(1, 'Please enter the access code.'),
+});
+
 export const loginSchema = z.object({
   email: z
     .email({ error: 'Please enter a valid email.' })

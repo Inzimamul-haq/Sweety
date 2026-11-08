@@ -5,6 +5,20 @@ export async function registerUser(payload) {
   return data;
 }
 
+export async function verifyDoctorAccessCode(code) {
+  const { data } = await client.post('/auth/doctor/verify-code', { code });
+  return data;
+}
+
+export async function registerDoctorUser(payload, signupToken) {
+  const { data } = await client.post('/auth/doctor/register', payload, {
+    headers: {
+      Authorization: `Bearer ${signupToken}`,
+    },
+  });
+  return data;
+}
+
 export async function loginUser(payload) {
   const { data } = await client.post('/auth/login', payload);
   return data;

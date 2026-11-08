@@ -20,7 +20,10 @@ export function LoginPage() {
             Track fasting and meal-time glucose, then see daily and monthly patterns without the clutter.
           </p>
         </div>
-        <p className="relative text-sm text-rose-200">Demo: demo@sweety.app / Demo12345</p>
+        <div className="relative space-y-1 text-sm text-rose-200">
+          <p>Patient demo: demo@sweety.app / Demo12345</p>
+          <p>Doctor demo: doctor@sweety.app / Demo12345</p>
+        </div>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <motion.div
@@ -29,7 +32,7 @@ export function LoginPage() {
           className="w-full max-w-md rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-stone-200/80 sm:p-8"
         >
           <h2 className="font-display text-3xl text-stone-900">Welcome back</h2>
-          <p className="mt-2 mb-6 text-sm text-stone-500">Log in to continue your glucose log.</p>
+          <p className="mt-2 mb-6 text-sm text-stone-500">Log in to continue to your dashboard.</p>
           <LoginForm />
         </motion.div>
       </section>

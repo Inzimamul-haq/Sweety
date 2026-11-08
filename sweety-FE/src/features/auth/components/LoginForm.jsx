@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getErrorPayload } from '../../../api/client.js';
 import { Button } from '../../../components/ui/Button.jsx';
 import { ErrorMessage } from '../../../components/ui/ErrorMessage.jsx';
@@ -12,7 +12,6 @@ export function LoginForm() {
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,7 +19,6 @@ export function LoginForm() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    // Frontend validation with Zod before making request
     const validation = validateAuth(loginSchema, form);
     if (!validation.success) {
       setError(validation.error);
@@ -32,7 +30,8 @@ export function LoginForm() {
     try {
       const user = await login(validation.data);
       toast.success(user?.name ? `Welcome back, ${user.name}!` : 'Logged in successfully!');
-      navigate(location.state?.from?.pathname || '/readings', { replace: true });
+      const target = user?.role === 'doctor' ? '/doctor' : '/readings';
+      navigate(target, { replace: true });
     } catch (err) {
       const payload = getErrorPayload(err);
       setError(payload);
@@ -72,12 +71,20 @@ export function LoginForm() {
       <Button type="submit" className="w-full" loading={loading}>
         Log in
       </Button>
-      <p className="text-center text-sm text-stone-500">
-        New here?{' '}
-        <Link to="/signup" className="font-semibold text-rose-800">
-          Create an account
-        </Link>
-      </p>
+      <div className="space-y-1.5 pt-1 text-center text-sm text-stone-500">
+        <p>
+          New here?{' '}
+          <Link to="/signup" className="font-semibold text-rose-800">
+            Create an account
+          </Link>
+        </p>
+        <p className="text-xs text-stone-400">
+          Are you a healthcare provider?{' '}
+          <Link to="/doctor-signup" className="font-medium text-stone-600 underline hover:text-rose-800">
+            For clinicians
+          </Link>
+        </p>
+      </div>
     </form>
   );
 }

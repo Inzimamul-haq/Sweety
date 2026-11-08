@@ -1,25 +1,38 @@
-import { Activity, Droplets, Menu, User, X } from 'lucide-react';
+import { Activity, Droplets, Menu, Stethoscope, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext.jsx';
 
-const links = [
+const patientLinks = [
   { to: '/readings', label: 'Readings', icon: Droplets },
   { to: '/reports', label: 'Reports', icon: Activity },
+];
+
+const doctorLinks = [
+  { to: '/doctor', label: 'Patients', icon: Stethoscope },
 ];
 
 export function Navbar() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
+  const isDoctor = user?.role === 'doctor';
+  const links = isDoctor ? doctorLinks : patientLinks;
+  const homePath = isDoctor ? '/doctor' : '/readings';
+
   return (
     <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-[#f6efe6]/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <NavLink to="/readings" className="flex items-center gap-2 font-display text-xl text-stone-900">
+        <NavLink to={homePath} className="flex items-center gap-2 font-display text-xl text-stone-900">
           <span className="grid h-9 w-9 place-items-center rounded-2xl bg-rose-700 text-white">
             <Droplets className="h-4 w-4" />
           </span>
-          Sweety
+          <span>Sweety</span>
+          {isDoctor ? (
+            <span className="rounded-full bg-rose-100 px-2.5 py-0.5 font-sans text-xs font-semibold text-rose-800">
+              Clinician
+            </span>
+          ) : null}
         </NavLink>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -27,6 +40,7 @@ export function Navbar() {
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.to === '/doctor'}
               className={({ isActive }) =>
                 `inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition ${
                   isActive
@@ -75,6 +89,7 @@ export function Navbar() {
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.to === '/doctor'}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-2 rounded-2xl px-3 py-2 text-stone-700 transition ${

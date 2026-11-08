@@ -1,10 +1,13 @@
 import {
   Activity,
   AlertCircle,
+  ArrowLeft,
   CalendarDays,
+  Eye,
   Hash,
   Plus,
   RefreshCw,
+  Stethoscope,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -12,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getErrorPayload } from '../api/client.js';
 import { useToast } from '../components/ui/ToastContext.jsx';
+import { fetchDoctorPatientReport } from '../features/doctor/doctor.api.js';
 import { DailyReport } from '../features/reports/components/DailyReport.jsx';
 import { RangeReport } from '../features/reports/components/RangeReport.jsx';
 import { StatsCard } from '../features/reports/components/StatsCard.jsx';
@@ -31,11 +35,13 @@ const tabs = [
   { id: 'monthly', label: 'Previous month' },
 ];
 
-export function ReportsPage() {
+export function ReportsPage({ patientId = null }) {
+  const isDoctorView = Boolean(patientId);
   const [date, setDate] = useState(todayISO());
   const [tab, setTab] = useState('month-to-date');
   const [page, setPage] = useState(1);
   const [report, setReport] = useState(null);
+  const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingPage, setLoadingPage] = useState(false);
   const [error, setError] = useState(null);
@@ -70,20 +76,29 @@ export function ReportsPage() {
 
     async function loadReport() {
       try {
-        let data;
-        if (tab === 'daily') {
-          data = await fetchDailyReport(date);
-        } else if (tab === 'weekly') {
-          data = await fetchWeeklyReport(date, page, 20);
-        } else if (tab === 'month-to-date') {
-          data = await fetchMonthToDateReport(date, page, 20);
+        if (isDoctorView) {
+          const result = await fetchDoctorPatientReport(patientId, tab, date, page, 20);
+          if (!cancelled) {
+            setReport(result.report);
+            setPatient(result.patient || null);
+            setError(null);
+          }
         } else {
-          data = await fetchMonthlyReport(date, page, 20);
-        }
+          let data;
+          if (tab === 'daily') {
+            data = await fetchDailyReport(date);
+          } else if (tab === 'weekly') {
+            data = await fetchWeeklyReport(date, page, 20);
+          } else if (tab === 'month-to-date') {
+            data = await fetchMonthToDateReport(date, page, 20);
+          } else {
+            data = await fetchMonthlyReport(date, page, 20);
+          }
 
-        if (!cancelled) {
-          setReport(data);
-          setError(null);
+          if (!cancelled) {
+            setReport(data);
+            setError(null);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -104,7 +119,7 @@ export function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [date, tab, page, reloadKey, toast]);
+  }, [date, tab, page, reloadKey, isDoctorView, patientId, toast]);
 
   const isMatchingKind = report && report.kind === tab;
   const stats = (isMatchingKind ? report.stats : null) || {
@@ -116,15 +131,51 @@ export function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100vh-95px)] lg:overflow-hidden">
+      {/* Doctor Read-Only Banner when viewing a patient's reports */}
+      {isDoctorView ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200/80 bg-white/95 px-4 py-2.5 shadow-2xs shrink-0">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/doctor"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-200/80 transition"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to patients
+            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-stone-900">
+                <Eye className="h-4 w-4 text-rose-700" />
+                Viewing {patient?.name || 'Patient'}
+              </span>
+              {patient?.email ? (
+                <span className="text-xs text-stone-500">({patient.email})</span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {patient?.connectedDoctor?.name ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-800 ring-1 ring-rose-200/60">
+                <Stethoscope className="h-3 w-3" />
+                Connected to {patient.connectedDoctor.name}
+              </span>
+            ) : null}
+            <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600">
+              Read-only view
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       {/* 1. Compact Dashboard Header (Title, Tabs, Date picker in 1 line on desktop) */}
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl font-bold text-stone-900 sm:text-3xl">
-              Reports
+              {isDoctorView && patient?.name ? `${patient.name}’s Reports` : 'Reports'}
             </h1>
             <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
-              Analytics
+              {isDoctorView ? 'Clinical Review' : 'Analytics'}
             </span>
           </div>
           <p className="text-xs text-stone-500 font-medium">
@@ -165,16 +216,18 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Mobile-only Add Reading Navigation Button */}
-      <div className="sm:hidden shrink-0">
-        <Link
-          to="/readings"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-800 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-900 transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add New Reading</span>
-        </Link>
-      </div>
+      {/* Mobile-only Add Reading Navigation Button (Hidden in Doctor Read-Only View) */}
+      {!isDoctorView ? (
+        <div className="sm:hidden shrink-0">
+          <Link
+            to="/readings"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-800 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-900 transition"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add New Reading</span>
+          </Link>
+        </div>
+      ) : null}
 
       {/* Error alert if any */}
       {error ? (
@@ -238,12 +291,13 @@ export function ReportsPage() {
             {/* Right Bento Tile: Detailed Log Table */}
             <div className="flex flex-col lg:col-span-7 xl:col-span-6 h-full min-h-[260px]">
               {tab === 'daily' ? (
-                <DailyReport report={report} />
+                <DailyReport report={report} readOnly={isDoctorView} />
               ) : (
                 <RangeReport
                   report={report}
                   onPageChange={handlePageChange}
                   loadingPage={loadingPage}
+                  readOnly={isDoctorView}
                 />
               )}
             </div>
@@ -253,5 +307,3 @@ export function ReportsPage() {
     </div>
   );
 }
-
-

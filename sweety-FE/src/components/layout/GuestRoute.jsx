@@ -13,7 +13,7 @@ export function GuestRoute({ children }) {
   }
 
   if (user) {
-    return <Navigate to="/readings" replace />;
+    return <Navigate to={user.role === 'doctor' ? '/doctor' : '/readings'} replace />;
   }
 
   return children;

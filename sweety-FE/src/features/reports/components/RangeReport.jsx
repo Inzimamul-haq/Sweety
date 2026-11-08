@@ -11,7 +11,7 @@ const tones = {
   high: 'text-rose-700 bg-rose-50 border-rose-200/60',
 };
 
-export function RangeReport({ report, onPageChange, loadingPage }) {
+export function RangeReport({ report, onPageChange, loadingPage, readOnly = false }) {
   const readings = useMemo(
     () => (Array.isArray(report?.readings) ? report.readings : []),
     [report],
@@ -52,7 +52,11 @@ export function RangeReport({ report, onPageChange, loadingPage }) {
     return (
       <EmptyState
         title="Nothing in this range"
-        body="There are no readings between these dates yet. Try another day, or log a few values first."
+        body={
+          readOnly
+            ? 'This patient has no recorded readings between these dates.'
+            : 'There are no readings between these dates yet. Try another day, or log a few values first.'
+        }
       />
     );
   }

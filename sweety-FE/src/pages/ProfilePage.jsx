@@ -11,6 +11,7 @@ import {
   LogOut,
   Mail,
   Shield,
+  Stethoscope,
   Trash2,
   User,
   X,
@@ -216,16 +217,24 @@ export function ProfilePage() {
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-display text-2xl font-bold sm:text-3xl">{user?.name}</h1>
                 <span className="rounded-full bg-rose-500/30 px-2.5 py-0.5 text-xs font-semibold text-rose-200 ring-1 ring-rose-400/30">
-                  Verified
+                  {user?.role === 'doctor' ? 'Clinician' : 'Patient'}
                 </span>
               </div>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-rose-200">
                 <Mail className="h-4 w-4" />
                 {user?.email}
               </p>
+              {user?.role !== 'doctor' ? (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-rose-100 font-medium">
+                  <Stethoscope className="h-3.5 w-3.5 text-rose-300" />
+                  {user?.connectedDoctor?.name
+                    ? `Connected Doctor: ${user.connectedDoctor.name} (${user.connectedDoctor.email})`
+                    : 'Not connected to a doctor yet'}
+                </p>
+              ) : null}
               <p className="mt-1 flex items-center gap-1.5 text-xs text-rose-300/80">
                 <Calendar className="h-3.5 w-3.5" />
                 Member since {memberSince}
