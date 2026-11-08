@@ -14,7 +14,7 @@ dotenv.config({ path: path.resolve(here, '../.env') });
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('\n❌ Missing DIRECT_URL or DATABASE_URL in .env');
+  console.error('\n Missing DIRECT_URL or DATABASE_URL in .env');
   console.error('Please configure your Neon connection string in sweety-BE/.env\n');
   process.exit(1);
 }
@@ -100,11 +100,11 @@ async function seed() {
     await client.query('COMMIT');
 
     console.log(
-      `✅ Seeded demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD} with ${sampleReadings.length} readings.`,
+      ` Seeded demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD} with ${sampleReadings.length} readings.`,
     );
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('❌ Database seed failed:', error.message);
+    console.error(' Database seed failed:', error.message);
     process.exitCode = 1;
   } finally {
     client.release();

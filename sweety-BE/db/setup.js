@@ -14,7 +14,7 @@ dotenv.config({
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('\n❌ Missing DIRECT_URL or DATABASE_URL in .env');
+  console.error('\n Missing DIRECT_URL or DATABASE_URL in .env');
   console.error('Please configure your Neon PostgreSQL connection string in sweety-BE/.env\n');
   process.exit(1);
 }
@@ -37,12 +37,12 @@ async function setup() {
       console.log('Applying schema.sql...');
       await client.query(schema);
 
-      console.log('✅ Database schema created successfully.');
+      console.log(' Database schema created successfully.');
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error('❌ Database setup failed:', error.message);
+    console.error(' Database setup failed:', error.message);
     process.exitCode = 1;
   } finally {
     await pool.end();
