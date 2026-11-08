@@ -14,3 +14,18 @@ export async function fetchMe() {
   const { data } = await client.get('/auth/me');
   return data.user;
 }
+
+export async function updateUserProfile(payload) {
+  const { data } = await client.put('/auth/profile', payload);
+  return data;
+}
+
+export async function changeUserPassword(payload) {
+  const { data } = await client.put('/auth/change-password', payload);
+  return data;
+}
+
+export async function deleteUserAccount(payload) {
+  const { data } = await client.delete('/auth/profile', { data: payload });
+  return data;
+}

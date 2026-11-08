@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { fetchMe, loginUser, registerUser } from './auth.api.js';
+import { deleteUserAccount, fetchMe, loginUser, registerUser } from './auth.api.js';
 
 const AuthContext = createContext(null);
 
@@ -48,9 +48,18 @@ export function AuthProvider({ children }) {
         setUser(result.user);
         return result.user;
       },
+      updateUser(nextUser) {
+        setUser((prev) => ({ ...prev, ...nextUser }));
+      },
       logout() {
         localStorage.removeItem('sweety_token');
         setUser(null);
+      },
+      async deleteAccount(payload) {
+        const result = await deleteUserAccount(payload);
+        localStorage.removeItem('sweety_token');
+        setUser(null);
+        return result;
       },
     }),
     [user, loading],

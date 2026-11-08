@@ -23,4 +23,6 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   timezone: process.env.APP_TIMEZONE || 'Asia/Kolkata',
+  redisUrl: process.env.REDIS_URL || null,
+  cacheTtlSeconds: Number(process.env.CACHE_TTL_SECONDS || 900),
 };

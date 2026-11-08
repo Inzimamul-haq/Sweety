@@ -26,3 +26,41 @@ export async function me(req, res, next) {
     next(error);
   }
 }
+
+export async function updateProfile(req, res, next) {
+  try {
+    const result = await authService.updateProfile({
+      userId: req.user.id,
+      name: req.validated.name,
+      currentPassword: req.validated.currentPassword,
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function changePassword(req, res, next) {
+  try {
+    const result = await authService.changePassword({
+      userId: req.user.id,
+      currentPassword: req.validated.currentPassword,
+      newPassword: req.validated.newPassword,
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteAccount(req, res, next) {
+  try {
+    const result = await authService.deleteAccount({
+      userId: req.user.id,
+      password: req.validated.password,
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}

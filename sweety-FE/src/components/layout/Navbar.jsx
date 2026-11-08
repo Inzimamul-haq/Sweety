@@ -1,9 +1,7 @@
-import { Activity, Droplets, LogOut, Menu, X } from 'lucide-react';
+import { Activity, Droplets, Menu, User, X } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext.jsx';
-import { Button } from '../ui/Button.jsx';
-import { ConfirmModal } from '../ui/ConfirmModal.jsx';
 
 const links = [
   { to: '/readings', label: 'Readings', icon: Droplets },
@@ -11,17 +9,8 @@ const links = [
 ];
 
 export function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  function handleConfirmLogout() {
-    setShowLogoutConfirm(false);
-    setOpen(false);
-    logout();
-    navigate('/login');
-  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-[#f6efe6]/85 backdrop-blur-md">
@@ -53,11 +42,21 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <p className="max-w-40 truncate text-sm text-stone-500">{user?.name}</p>
-          <Button variant="secondary" onClick={() => setShowLogoutConfirm(true)}>
-            <LogOut className="h-4 w-4" />
-            Log out
-          </Button>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-2.5 rounded-2xl border px-3 py-1.5 text-sm font-medium transition shadow-sm ${
+                isActive
+                  ? 'border-rose-300 bg-white text-rose-800'
+                  : 'border-stone-200/90 bg-white/80 text-stone-700 hover:border-stone-300 hover:bg-white hover:text-stone-900'
+              }`
+            }
+          >
+            <span className="grid h-7 w-7 place-items-center rounded-xl bg-rose-100 text-rose-700">
+              <User className="h-4 w-4" />
+            </span>
+            <span className="max-w-36 truncate font-medium">{user?.name || 'Profile'}</span>
+          </NavLink>
         </div>
 
         <button
@@ -77,29 +76,30 @@ export function Navbar() {
               key={link.to}
               to={link.to}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-2xl px-3 py-2 text-stone-700 hover:bg-white"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-2xl px-3 py-2 text-stone-700 transition ${
+                  isActive ? 'bg-white font-medium text-rose-800' : 'hover:bg-white'
+                }`
+              }
             >
               <link.icon className="h-4 w-4" />
               {link.label}
             </NavLink>
           ))}
-          <Button variant="secondary" className="w-full" onClick={() => setShowLogoutConfirm(true)}>
-            <LogOut className="h-4 w-4" />
-            Log out
-          </Button>
+          <NavLink
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-2 rounded-2xl px-3 py-2 text-stone-700 transition ${
+                isActive ? 'bg-white font-medium text-rose-800' : 'hover:bg-white'
+              }`
+            }
+          >
+            <User className="h-4 w-4" />
+            Profile ({user?.name || 'Account'})
+          </NavLink>
         </div>
       ) : null}
-
-      <ConfirmModal
-        isOpen={showLogoutConfirm}
-        title="Log Out?"
-        description="Are you sure you want to log out of your Sweety account?"
-        confirmText="Log Out"
-        confirmVariant="primary"
-        icon={LogOut}
-        onConfirm={handleConfirmLogout}
-        onClose={() => setShowLogoutConfirm(false)}
-      />
     </header>
   );
 }

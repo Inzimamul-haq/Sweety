@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env.js';
+import { getCache, setCache, invalidateUserCache, invalidateReadingsCache } from '../../config/redis.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import * as authRepository from './auth.repository.js';
 
@@ -57,9 +58,74 @@ export async function login({ email, password }) {
 }
 
 export async function me(userId) {
+  const cacheKey = `cache:user:${userId}:me`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const user = await authRepository.findById(userId);
   if (!user) {
     throw new AppError(401, 'Invalid or expired token.', 'token');
   }
-  return publicUser(user);
+
+  const userData = publicUser(user);
+  await setCache(cacheKey, userData);
+  return userData;
+}
+
+export async function updateProfile({ userId, name, currentPassword }) {
+  const user = await authRepository.findByIdWithPassword(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const matches = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!matches) {
+    throw new AppError(401, 'Current password is incorrect.', 'currentPassword');
+  }
+
+  const updated = await authRepository.updateName({ id: userId, name });
+  await invalidateUserCache(userId);
+
+  return {
+    user: publicUser(updated),
+    message: 'Profile updated successfully.',
+  };
+}
+
+export async function changePassword({ userId, currentPassword, newPassword }) {
+  const user = await authRepository.findByIdWithPassword(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const matches = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!matches) {
+    throw new AppError(401, 'Current password is incorrect.', 'currentPassword');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await authRepository.updatePassword({ id: userId, passwordHash });
+  await invalidateUserCache(userId);
+
+  return { message: 'Password changed successfully.' };
+}
+
+export async function deleteAccount({ userId, password }) {
+  const user = await authRepository.findByIdWithPassword(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const matches = await bcrypt.compare(password, user.password_hash);
+  if (!matches) {
+    throw new AppError(401, 'Incorrect password. Account deletion aborted.', 'password');
+  }
+
+  await authRepository.deleteUser(userId);
+  await invalidateUserCache(userId);
+  await invalidateReadingsCache(userId);
+
+  return { message: 'Account deleted successfully.' };
 }

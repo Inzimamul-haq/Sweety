@@ -1,3 +1,4 @@
+import { getCache, setCache, invalidateReadingsCache } from '../../config/redis.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import * as readingsRepository from './readings.repository.js';
 
@@ -40,12 +41,15 @@ export async function createReading(userId, payload) {
   });
 
   try {
-    return await readingsRepository.insertReading({
+    const reading = await readingsRepository.insertReading({
       userId,
       date: payload.date,
       slot: payload.slot,
       value: payload.value,
     });
+    // Invalidate readings cache so fresh data is fetched
+    await invalidateReadingsCache(userId);
+    return reading;
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new AppError(409, duplicateSlotMessage(payload.slot), 'slot');
@@ -55,7 +59,15 @@ export async function createReading(userId, payload) {
 }
 
 export async function listReadings(userId, date) {
-  return readingsRepository.listByUserAndDate(userId, date);
+  const cacheKey = `cache:readings:${userId}:${date}`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const readings = await readingsRepository.listByUserAndDate(userId, date);
+  await setCache(cacheKey, readings);
+  return readings;
 }
 
 export async function updateReading(userId, id, payload) {
@@ -72,13 +84,16 @@ export async function updateReading(userId, id, payload) {
   });
 
   try {
-    return await readingsRepository.updateReading({
+    const reading = await readingsRepository.updateReading({
       id,
       userId,
       date: payload.date,
       slot: payload.slot,
       value: payload.value,
     });
+    // Invalidate readings cache
+    await invalidateReadingsCache(userId);
+    return reading;
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new AppError(409, duplicateSlotMessage(payload.slot), 'slot');
@@ -92,4 +107,6 @@ export async function deleteReading(userId, id) {
   if (!deleted) {
     throw new AppError(404, 'Reading not found.');
   }
+  // Invalidate readings cache
+  await invalidateReadingsCache(userId);
 }
