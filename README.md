@@ -25,65 +25,85 @@ Kenpath assignment: a patient logs up to four blood glucose readings a day and v
 ## Project Structure
 
 ```
-sweety-BE/   Express API, db scripts (schema, seed)
-sweety-FE/   React + Vite client
-screenshots/ README images
+sweety-BE/    Express API, db scripts (schema, seed)
+sweety-FE/    React + Vite client
+screenshots/  README images
 ```
 
 ## Quick Start
 
+> Run every command from the **repository root** (the folder that contains `sweety-BE` and `sweety-FE`) unless a step says otherwise.
+
 ### 1. Install
 
 ```bash
-cd sweety-BE && npm install
-cd ../sweety-FE && npm install
+cd sweety-BE
+npm install
+cd ../sweety-FE
+npm install
+cd ..
 ```
 
-### 2. Environment variables
+### 2. Create the Neon database
 
-Create a project in the [Neon Console](https://console.neon.tech), then copy the templates.
+1. Log in at [neon.tech](https://neon.tech).
+2. Click **New project** (top left), give it a name, and create it.
 
-macOS / Linux / Git Bash:
+   ![Create project](screenshots/createproject.png)
+
+3. After the project is created, click **Connect** (top left of the project dashboard). The connection dialog opens.
+
+   ![Connect dialog](screenshots/connectui.png)
+
+4. Copy the two connection strings:
+   - Turn **Connection pooling OFF**, copy the string, and keep it for `DIRECT_URL`.
+   - Turn **Connection pooling ON**, copy the string, and keep it for `DATABASE_URL`.
+
+| Variable | Pooling | Host looks like | Used for |
+|---|---|---|---|
+| `DIRECT_URL` | OFF | `ep-xxxx.region.aws.neon.tech` | Schema setup and seeding |
+| `DATABASE_URL` | ON | `ep-xxxx-pooler.region.aws.neon.tech` | API runtime queries |
+
+> Both strings must end with `?sslmode=require`. If the password is hidden, click **Reset password** in the dialog and copy the new string.
+
+### 3. Environment variables
+
+From the repository root:
+
 ```bash
 cp sweety-BE/.env.example sweety-BE/.env
 cp sweety-FE/.env.example sweety-FE/.env
 ```
 
-Windows PowerShell:
-```powershell
-Copy-Item sweety-BE/.env.example sweety-BE/.env
-Copy-Item sweety-FE/.env.example sweety-FE/.env
-```
+This works in macOS/Linux terminals, Git Bash and Windows PowerShell.
 
-**`sweety-BE/.env`**
-
-| Variable | Description |
-|---|---|
-| `PORT` | API port (default `4000`) |
-| `DATABASE_URL` | Neon **pooled** connection string (host contains `-pooler`), used by the API |
-| `DIRECT_URL` | Neon **direct** connection string (no `-pooler`), used for schema setup and seeding |
-| `JWT_SECRET` | Secret used to sign JWTs (use any long random string) |
-| `JWT_EXPIRES_IN` | Token lifetime, e.g. `7d` |
-| `CORS_ORIGIN` | Frontend origin, e.g. `http://localhost:5173` |
+Open `sweety-BE/.env` and paste your strings:
 
 ```env
 PORT=4000
-DATABASE_URL=postgresql://user:password@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require
-DIRECT_URL=postgresql://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+DIRECT_URL=<paste the pooling OFF string here>
+DATABASE_URL=<paste the pooling ON string here>
 JWT_SECRET=change_me
 JWT_EXPIRES_IN=7d
 CORS_ORIGIN=http://localhost:5173
 ```
 
-**`sweety-FE/.env`**
+| Variable | Description |
+|---|---|
+| `PORT` | API port (default `4000`) |
+| `DIRECT_URL` | Neon **direct** connection string (pooling off), used for schema setup and seeding |
+| `DATABASE_URL` | Neon **pooled** connection string (pooling on), used by the API |
+| `JWT_SECRET` | Secret used to sign JWTs (use any long random string) |
+| `JWT_EXPIRES_IN` | Token lifetime, e.g. `7d` |
+| `CORS_ORIGIN` | Frontend origin, e.g. `http://localhost:5173` |
+
+`sweety-FE/.env` needs one value:
 
 ```env
 VITE_API_URL=http://localhost:4000
 ```
 
-> Get both connection strings from Neon Console → your project → **Connect**. Turn **Connection pooling** on for `DATABASE_URL` and off for `DIRECT_URL`.
-
-### 3. Create tables and seed demo data
+### 4. Create tables and seed demo data
 
 ```bash
 cd sweety-BE
@@ -92,16 +112,19 @@ npm run db:init
 
 `db:init` runs `npm run setup` (applies the schema) and then `npm run seed` (demo user and readings). The seed is safe to re-run.
 
-### 4. Run the backend
+### 5. Run the backend
+
+In the same terminal (you are already in `sweety-BE`):
 
 ```bash
-cd sweety-BE
 npm run dev
 ```
 
 API: `http://localhost:4000` · Health check: `GET /health`
 
-### 5. Run the frontend
+### 6. Run the frontend
+
+Open a **second terminal at the repository root**:
 
 ```bash
 cd sweety-FE
